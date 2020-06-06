@@ -2,150 +2,137 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <SDL2/SDL.h>
+#include <os.h>
 #include <io.h>
-#include "cg.h"
-
-
-float vertices[] = {
-     0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-     0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-    -0.5f,  0.5f, 0.0f, 0.0f, 1.0f
-};
-
-unsigned int indices[] = {
-    0, 1, 3,
-    1, 2, 3 
-};  
-
+#include "game.h"
+#include <GL/glew.h>
 
 int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
 {
-    GLuint vbo;
-    GLuint vao;
-    GLuint ebo;
-    CgTexture texture_diffuse;
-    CgTexture texture_normal;
-    CgShader shader;
-    int uniform_color;
-    int game_main_quit = 0;
+    OsEvent event;
+    OsWindow* game_main_window;
+    GameRenderer* renderer;
+    GameAtlas atlas1;
+    GameAtlas atlas2;
+    GameTexture tex1;
+    GameTexture tex2;
+    GameTexture tex3;
+    
+    int game_quit = 0;
+
+    int i, j;
     void* pixels;
-    int mx, my;
     int w, h, channels;
-    FILE* file;
-    int size;
-    char* fsb;
-    char* vsb;
-    SDL_Window* game_main_window;
-    SDL_Event game_main_event;
-    SDL_GLContext* game_main_context;
-    SDL_Init(SDL_INIT_EVERYTHING);
+    int mx, my;
+    int bx,by;
+    unsigned long t1, t2;
+    os_init();
 
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,8);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
-    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE,8);
-
-    game_main_window = SDL_CreateWindow("Renderer",50,50,640,480,SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+    if(!os_window_open(&game_main_window,"スーパブラザーズメーカ",50,50,640,480,0)){
+        printf("game main window null\n");
+    }
+    os_opengl_create(game_main_window);
+    if(glewInit() != GLEW_OK) /*Do it ourselves latter.*/
+    {
+        printf("glew error\n");
+    }
+    if(!game_renderer_create(&renderer)){
+        printf("could not create renderer\n");
+    }
     
-    game_main_context = SDL_GL_CreateContext(game_main_window);
-    glewInit();
-
-    glViewport(0,0,640,480);
-
-    file = fopen("source/shader.fs","rb");
-    if(file == NULL){
-        printf("file null\n");
-    }
-    fseek(file,0,SEEK_END);
-    size = ftell(file);
-    fseek(file,0,SEEK_SET);
-    fsb = malloc(size + 1);
-    if(fsb == NULL){
-        printf("malloc failed\n");
-    }
-    fread(fsb,size,1,file);
-    fsb[size] = '\0';
-    printf("%s\n",fsb);
-
-    file = fopen("source/shader.vs","rb");
-    if(file == NULL){
-        printf("file null\n");
-    }
-    fseek(file,0,SEEK_END);
-    size = ftell(file);
-    fseek(file,0,SEEK_SET);
-    vsb = malloc(size + 1);
-    if(vsb == NULL){
-        printf("malloc failed\n");
-    }
-    fread(vsb,size,1,file);
-    vsb[size] = '\0';
-    printf("%s\n",vsb);
-
-
-    cg_shader_create(&shader,vsb,fsb);
-
-    glGenVertexArrays(1,&vao);
-    glGenBuffers(1,&vbo);
-    glGenBuffers(1,&ebo);
-
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER,vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,ebo);
-
-    glBufferData(GL_ARRAY_BUFFER,sizeof(vertices),vertices,GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices),indices,GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,5 * sizeof(float),(void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,5 * sizeof(float),(void*)(3 *sizeof(float)));
-    glEnableVertexAttribArray(1);
-    
-    pixels = io_image_load("brick_diffuse_map.png",&w,&h,&channels);
+    /*
+    pixels = io_image_load("icon.png",&w,&h,&channels);
     if(pixels == NULL){
-        printf("failed to load image\n");
+        printf("could not set icon\n");
     }
-    printf("image: %i %i %i\n",w,h,channels);
-    cg_texture_create(&texture_diffuse,pixels,w,h);
-    io_image_unload(pixels);
+    else
+    {
+        os_window_set_icon(game_main_window,pixels,w,h);
+        io_image_unload(pixels);
+    }
+    */
+    
+   
+    bx = 0; 
+    by = 0;
+    pixels = io_image_load("icon.png",&w,&h,&channels);
+    if(pixels == NULL){
+        printf("could not load texture\n");
+        return 0;
+    }
+    game_renderer_create_atlas(renderer,&atlas1,pixels,w,h,channels);
     
     pixels = io_image_load("brick_normal_map.png",&w,&h,&channels);
     if(pixels == NULL){
-        printf("failed to load image\n");
+        printf("could not load texture\n");
+        return 0;
     }
-    printf("image: %i %i %i\n",w,h,channels);
-    cg_texture_create(&texture_normal,pixels,w,h);
-    io_image_unload(pixels);
+    game_renderer_create_atlas(renderer,&atlas2,pixels,w,h,channels);
 
-    while(!game_main_quit)
+    game_renderer_create_texture(renderer,&tex1,&atlas1,0,0,16,16);
+    game_renderer_create_texture(renderer,&tex2,&atlas1,16,16,16,16);
+    game_renderer_create_texture(renderer,&tex3,&atlas2,0,0,w,h);
+    
+    while(!game_quit)  
     {
-        SDL_GetMouseState(&mx,&my);
-        while(SDL_PollEvent(&game_main_event))
+        while(os_event_poll(&event))
         {
-            if(game_main_event.type == SDL_QUIT){
-                game_main_quit = 1;
+            switch(event.type)
+            {
+                case OS_EVENT_CLOSE:
+                {
+                    if(event.window == game_main_window){
+                        game_quit = 1;
+                    }
+                }break;
+                case OS_EVENT_MOUSE:
+                {
+                    mx = event.mouse.x;
+                    my = event.mouse.y;
+                }break;
+                case OS_EVENT_KEYBOARD:
+                {
+                    if(event.keyboard.action == OS_ACTION_PRESS)
+                    {
+                        if(event.keyboard.scancode == OS_KEYBOARD_D){
+                            bx-=5;
+                        }
+                        if(event.keyboard.scancode == OS_KEYBOARD_A){
+                            bx+=5;
+                        }
+                        if(event.keyboard.scancode == OS_KEYBOARD_S){
+                            by-=5;
+                        }
+                        if(event.keyboard.scancode == OS_KEYBOARD_W){
+                            by+=5;
+                        }
+                    }
+                }
             }
         }
-        glClearColor(0,0,0,1);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        cg_texture_select(texture_diffuse,0);
-        cg_texture_select(texture_normal,1);
-        cg_shader_select(shader);
-        cg_shader_set_uniform1i(shader,"diffusemap",0);
-        cg_shader_set_uniform1i(shader,"normalmap",1);
-        cg_shader_set_uniform2f(shader,"resolution",640.0,480.0);
-        cg_shader_set_uniform3f(shader,"light_position",(float)mx/640.0,1.0 -(float)my/480.0,0.8);
         
-        
-        glBindVertexArray(vao);
-        /*glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);*/
-        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,0);
+        t1 = os_timer_acquire();
+        os_window_get_size(game_main_window,&w,&h);
+        game_renderer_clear(renderer,w,h);
 
-        SDL_GL_SwapWindow(game_main_window);
+        
+        game_renderer_draw_texture(renderer,&tex3,0,0,32,32,0,255);
+        for(i = 0; i < 100; i++)
+        {
+            for(j = 0;j < 100; j++)
+            {
+                game_renderer_draw_rectangle(renderer,bx + (j * 5), by + (i * 5),3,3,0,0,255,200);
+            }
+        }
+        
+        game_renderer_draw_triangle(renderer,320-100,240,320+100,240,320,240-100,0,255,0,128);
+        game_renderer_draw_texture(renderer,&tex1,50,50,0,0,0,255);
+        game_renderer_draw_texture(renderer,&tex2,100,50,0,0,0,255);
+        game_renderer_present(renderer);
+        os_opengl_update(game_main_window);
+        t2 = os_timer_acquire();
+        printf("%i ms\n",t2 - t1);
+            
     }
 
     return 0;

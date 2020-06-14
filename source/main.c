@@ -7,16 +7,25 @@
 #include "game.h"
 #include <GL/glew.h>
 
+unsigned char i1[] = {
+    0xff,0x00,0x00,0xff,0x00,0x00,0xff,0xff,
+    0xff,0x00,0x00,0xff,0x00,0x00,0xff,0xff
+};
+
+unsigned int i2[] = {
+    0xff0000ff,0x00000000,
+    0xff0000ff,0x0000ffff
+};
+
 int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
 {
     OsEvent event;
     OsWindow* game_main_window;
     GameRenderer* renderer;
-    GameAtlas atlas1;
-    GameAtlas atlas2;
-    GameTexture tex1;
-    GameTexture tex2;
-    GameTexture tex3;
+    GameAtlas tile_atlas;
+    GameTexture tile_brick_diffuse;
+    GameTexture tile_brick_normal;
+    
     
     int game_quit = 0;
 
@@ -25,6 +34,8 @@ int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
     int w, h, channels;
     int mx, my;
     int bx,by;
+    float sx, sy;
+    int angle = 0;
     unsigned long t1, t2;
     os_init();
 
@@ -40,7 +51,7 @@ int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
         printf("could not create renderer\n");
     }
     
-    /*
+    
     pixels = io_image_load("icon.png",&w,&h,&channels);
     if(pixels == NULL){
         printf("could not set icon\n");
@@ -50,28 +61,22 @@ int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
         os_window_set_icon(game_main_window,pixels,w,h);
         io_image_unload(pixels);
     }
-    */
     
-   
+    
     bx = 0; 
     by = 0;
-    pixels = io_image_load("icon.png",&w,&h,&channels);
-    if(pixels == NULL){
-        printf("could not load texture\n");
-        return 0;
-    }
-    game_renderer_create_atlas(renderer,&atlas1,pixels,w,h,channels);
+    sx = 1.0;
+    sy = 1.0;
     
-    pixels = io_image_load("brick_normal_map.png",&w,&h,&channels);
+    pixels = io_image_load("tiles.png",&w,&h,&channels);
     if(pixels == NULL){
         printf("could not load texture\n");
         return 0;
     }
-    game_renderer_create_atlas(renderer,&atlas2,pixels,w,h,channels);
+    game_renderer_create_atlas(renderer,&tile_atlas,pixels,w,h,channels);
 
-    game_renderer_create_texture(renderer,&tex1,&atlas1,0,0,16,16);
-    game_renderer_create_texture(renderer,&tex2,&atlas1,16,16,16,16);
-    game_renderer_create_texture(renderer,&tex3,&atlas2,0,0,w,h);
+    game_renderer_create_texture(renderer,&tile_brick_diffuse,&tile_atlas,0,0,128,128);
+    game_renderer_create_texture(renderer,&tile_brick_normal,&tile_atlas,128,0,128,128);
     
     while(!game_quit)  
     {
@@ -106,6 +111,18 @@ int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
                         if(event.keyboard.scancode == OS_KEYBOARD_W){
                             by+=5;
                         }
+                        if(event.keyboard.scancode == OS_KEYBOARD_UP){
+                            if(sx < 1.0){
+                            sx += 0.1;
+                            sy += 0.1;
+                            }
+                        }
+                        if(event.keyboard.scancode == OS_KEYBOARD_DOWN){
+                            if(sx > 0.25){
+                            sx -= 0.1;
+                            sy -= 0.1;
+                            }
+                        }
                     }
                 }
             }
@@ -114,25 +131,17 @@ int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
         t1 = os_timer_acquire();
         os_window_get_size(game_main_window,&w,&h);
         game_renderer_clear(renderer,w,h);
-
+    
+        game_renderer_draw_texture(renderer,&tile_brick_diffuse,0,0,1.0,1.0,angle);
+        game_renderer_draw_texture(renderer,&tile_brick_normal,tile_brick_diffuse.w,0,1.0,1.0,angle);
+        game_renderer_draw_entity(renderer,&tile_brick_diffuse,&tile_brick_normal,(w/2)-(tile_brick_diffuse.w * sx / 2),(h/2)-(tile_brick_diffuse.h * sy / 2),sx,sy,angle);
         
-        game_renderer_draw_texture(renderer,&tex3,0,0,32,32,0,255);
-        for(i = 0; i < 100; i++)
-        {
-            for(j = 0;j < 100; j++)
-            {
-                game_renderer_draw_rectangle(renderer,bx + (j * 5), by + (i * 5),3,3,0,0,255,200);
-            }
-        }
-        
-        game_renderer_draw_triangle(renderer,320-100,240,320+100,240,320,240-100,0,255,0,128);
-        game_renderer_draw_texture(renderer,&tex1,50,50,0,0,0,255);
-        game_renderer_draw_texture(renderer,&tex2,100,50,0,0,0,255);
         game_renderer_present(renderer);
         os_opengl_update(game_main_window);
         t2 = os_timer_acquire();
         printf("%i ms\n",t2 - t1);
-            
+        printf("block size w: %i h: %i\n",(int)(tile_brick_diffuse.w * sx),(int)(tile_brick_diffuse.h * sy));
+        
     }
 
     return 0;

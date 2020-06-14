@@ -25,8 +25,8 @@ void game_renderer_draw_line(GameRenderer* renderer, int x1, int y1, int x2, int
 void game_renderer_draw_circle(GameRenderer* renderer, int x, int y, int radius, int r, int g, int b, int a);
 void game_renderer_draw_triangle(GameRenderer* renderer, int x1, int y1, int x2, int y2, int x3, int y3, int r, int g, int b, int a);
 void game_renderer_draw_rectangle(GameRenderer* renderer,int x, int y, int w, int h, int r, int g, int b, int a);
-void game_renderer_draw_texture(GameRenderer* renderer, GameTexture* texture, int x, int y, int sx, int sy, int angle, int alpha);
-void game_renderer_draw_entity(GameRenderer* renderer, GameTexture* diffuse, GameTexture* normal, int x, int y);
+void game_renderer_draw_texture(GameRenderer* renderer, GameTexture* texture, int x, int y, float sx, float sy, float angle);
+void game_renderer_draw_entity(GameRenderer* renderer, GameTexture* diffuse, GameTexture* normal, int x, int y, float sx, float sy, float angle);
 void game_renderer_present(GameRenderer* renderer);
 int  game_renderer_delete_texture(GameTexture* texture);
 int  game_renderer_delete(GameRenderer* renderer);

@@ -17,6 +17,16 @@ typedef struct GameTexture
     float x2, y2;
 }GameTexture;
 
+typedef enum GameUiAction
+{
+    GAME_UI_NONE,
+    GAME_UI_OVER,
+    GAME_UI_PRESS,
+    GAME_UI_HOLD,
+    GAME_UI_RELEASE
+}GameUiAction;
+
+
 int  game_renderer_create(GameRenderer** renderer);
 int  game_renderer_create_atlas(GameRenderer* renderer, GameAtlas* atlas, void* pixels, int w, int h, int channels);
 int  game_renderer_create_texture(GameRenderer* renderer, GameTexture* texture, GameAtlas* atlas, int x, int y, int w, int h);
@@ -30,6 +40,12 @@ void game_renderer_draw_entity(GameRenderer* renderer, GameTexture* diffuse, Gam
 void game_renderer_present(GameRenderer* renderer);
 int  game_renderer_delete_texture(GameTexture* texture);
 int  game_renderer_delete(GameRenderer* renderer);
+
+
+int game_ui_layer_do(void* id, int x, int y, int w, int h);
+int game_ui_button_do(void* id, int x, int y, int w, int h);
+int game_ui_slide_do(void* id, int x, int y, int w, int h, float* value, int bar_size);
+int game_ui_wheel_do(void* id, int x, int y, int radius, float* value, float* distance);
 
 
 #endif

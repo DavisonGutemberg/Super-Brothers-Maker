@@ -7,16 +7,6 @@
 #include "game.h"
 #include <GL/glew.h>
 
-unsigned char i1[] = {
-    0xff,0x00,0x00,0xff,0x00,0x00,0xff,0xff,
-    0xff,0x00,0x00,0xff,0x00,0x00,0xff,0xff
-};
-
-unsigned int i2[] = {
-    0xff0000ff,0x00000000,
-    0xff0000ff,0x0000ffff
-};
-
 int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
 {
     OsEvent event;
@@ -42,6 +32,8 @@ int main(int argc, char* argv[]) /*Nintendo me dá coisas grátis!*/
     if(!os_window_open(&game_main_window,"スーパブラザーズメーカ",50,50,640,480,0)){
         printf("game main window null\n");
     }
+    os_window_update(game_main_window);
+    
     os_opengl_create(game_main_window);
     if(glewInit() != GLEW_OK) /*Do it ourselves latter.*/
     {

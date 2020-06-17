@@ -90,7 +90,7 @@ const char* game_renderer_entity_fs[] = {
     "   vec4 ambient_light = diffuse * 0.5;\n",
     "   vec3 light_direction = vec3(0.0,1.0,0.5);\n",
     "   float diffuse_reflection = max(dot(normalize((normal * 2.0) - 1.0),normalize(light_direction)),0.0);\n",
-    "   gl_FragColor = ambient_light + (diffuse * diffuse_reflection);\n", 
+    "   gl_FragColor = vec4(ambient_light.rgb + (diffuse.rgb * diffuse_reflection),diffuse.a);\n", 
     "}                                     \n"
 };
 
@@ -168,6 +168,9 @@ int game_renderer_create(GameRenderer** renderer)
     irenderer->h = 0;
     irenderer->rendering = GAME_RENDERING_NOTHING;
     irenderer->texture_slots_used = 0;
+    for(i = 0; i < 16; i++){
+        irenderer->texture_ids[i] = -1;
+    }
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS,(GLint*)&irenderer->texture_slots_available);
     glGetIntegerv(GL_MAX_TEXTURE_SIZE,&max);
     
@@ -176,7 +179,7 @@ int game_renderer_create(GameRenderer** renderer)
     glGenVertexArrays(1,&irenderer->texture.vao);
     glBindVertexArray(irenderer->texture.vao);
 
-    irenderer->texture.vertices = malloc(sizeof(*irenderer->texture.vertices) * 4 * irenderer->texture_slots_available);
+    irenderer->texture.vertices = malloc(sizeof(*irenderer->texture.vertices) * 4 * 50000);
     if(irenderer->texture.vertices == NULL){
         return 0;
     }
@@ -186,16 +189,16 @@ int game_renderer_create(GameRenderer** renderer)
     glGenBuffers(1,&irenderer->texture.vbo);
     glBindBuffer(GL_ARRAY_BUFFER,irenderer->texture.vbo);
     glBufferData(GL_ARRAY_BUFFER,
-                 sizeof(*irenderer->texture.vertices) * 4 * irenderer->texture_slots_available,
+                 sizeof(*irenderer->texture.vertices) * 4 * 50000,
                  NULL,GL_DYNAMIC_DRAW);
     
-    irenderer->texture.indices = malloc(sizeof(*irenderer->texture.indices) * 6 * irenderer->texture_slots_available);
+    irenderer->texture.indices = malloc(sizeof(*irenderer->texture.indices) * 6 * 50000);
     if(irenderer->texture.indices == NULL){
         return 0;
     }
     irenderer->texture.index = 0;
 
-    for(i = 0, index = 0, vertex = 0; i < irenderer->texture_slots_available; i++, vertex += 4)
+    for(i = 0, index = 0, vertex = 0; i < 50000; i++, vertex += 4)
     {
         irenderer->texture.indices[index++] = vertex + 0;
         irenderer->texture.indices[index++] = vertex + 1;
@@ -208,7 +211,7 @@ int game_renderer_create(GameRenderer** renderer)
     glGenBuffers(1,&irenderer->texture.ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,irenderer->texture.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 sizeof(*irenderer->texture.indices) * 6 * irenderer->texture_slots_available,
+                 sizeof(*irenderer->texture.indices) * 6 * 50000,
                  irenderer->texture.indices,GL_STATIC_DRAW);
 
     glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(*irenderer->texture.vertices),(void*)0);
@@ -836,7 +839,6 @@ void game_renderer_present(GameRenderer* renderer)
                         sizeof(*irenderer->primitive.vertices) * irenderer->primitive.vertex,
                         irenderer->primitive.vertices);
         
-        /*glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);*/
         glDrawElements(GL_TRIANGLES,irenderer->primitive.index,GL_UNSIGNED_INT,(void*)0);
         
         irenderer->primitive.vertex = 0;
@@ -850,7 +852,7 @@ void game_renderer_present(GameRenderer* renderer)
         glUseProgram(irenderer->texture.shader);
         
         glUniform2f(glGetUniformLocation(irenderer->texture.shader,"view"),(float)irenderer->w,(float)irenderer->h);
-           
+        
         for(i = 0; i < irenderer->texture_slots_used; i++)
         {
             glActiveTexture(GL_TEXTURE0 + i);
@@ -863,7 +865,7 @@ void game_renderer_present(GameRenderer* renderer)
         glBufferSubData(GL_ARRAY_BUFFER,0,
                         sizeof(*irenderer->texture.vertices) * irenderer->texture.vertex,
                         irenderer->texture.vertices);
-        
+    
         glDrawElements(GL_TRIANGLES,irenderer->texture.index,GL_UNSIGNED_INT,(void*)0);
         irenderer->texture.vertex = 0;
         irenderer->texture.index = 0;
